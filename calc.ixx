@@ -25,16 +25,16 @@ namespace detail {
 constexpr double PI = 3.14159265358979323846;
 constexpr double E = 2.71828182845904523536;
 
-constexpr double abs(double x) { return x >= 0 ? x : -x; }
+[[nodiscard]]  constexpr double abs(double x) { return x >= 0 ? x : -x; }
 
-constexpr double factorial(int n) {
+[[nodiscard]]  constexpr double factorial(int n) {
   if (n < 0) return 0;
   double result = 1;
   for (int i = 2; i <= n; ++i) result *= i;
   return result;
 }
 
-double sin_approx(double x) {
+[[nodiscard]]  double sin_approx(double x) {
   x = std::fmod(x, 2 * PI);
   if (x < 0) x += 2 * PI;
 
@@ -42,7 +42,7 @@ double sin_approx(double x) {
   double term = x;
   double x2 = x * x;
   int n = 1;
-  while (abs(term) > 1e-10 && n < 20) {
+  while (detail::abs(term) > 1e-10 && n < 20) {
     result += term;
     n += 2;
     term *= -x2 / (n * (n - 1));
@@ -50,15 +50,14 @@ double sin_approx(double x) {
   return result;
 }
 
-constexpr double cos_approx(double x) {
-  while (x > PI) x -= 2 * PI;
-  while (x < -PI) x += 2 * PI;
+[[nodiscard]]  double cos_approx(double x) {
+  x = std::remainder(x, 2 * PI);
 
   double result = 0.0;
   double term = 1.0;
   double x2 = x * x;
   int n = 0;
-  while (abs(term) > 1e-10 && n < 20) {
+  while (detail::abs(term) > 1e-10 && n < 20) {
     result += term;
     n += 2;
     term *= -x2 / (n * (n - 1));
@@ -66,7 +65,7 @@ constexpr double cos_approx(double x) {
   return result;
 }
 
-constexpr std::expected<double, ArithmeticError> tan_approx(double x) {
+ std::expected<double, ArithmeticError> tan_approx(double x) noexcept {
   double cos_val = cos_approx(x);
   if (abs(cos_val) < 1e-10) {
     return std::unexpected(ArithmeticError::DomainError);
@@ -74,7 +73,7 @@ constexpr std::expected<double, ArithmeticError> tan_approx(double x) {
   return sin_approx(x) / cos_val;
 }
 
-constexpr std::expected<double, ArithmeticError> cot_approx(double x) {
+ std::expected<double, ArithmeticError> cot_approx(double x) noexcept {
   auto tan_val = tan_approx(x);
   if (!tan_val || abs(*tan_val) < 1e-10) {
     return std::unexpected(ArithmeticError::DomainError);
@@ -82,7 +81,7 @@ constexpr std::expected<double, ArithmeticError> cot_approx(double x) {
   return 1.0 / *tan_val;
 }
 
-constexpr std::expected<double, ArithmeticError> sec_approx(double x) {
+ std::expected<double, ArithmeticError> sec_approx(double x) noexcept {
   double cos_val = cos_approx(x);
   if (abs(cos_val) < 1e-10) {
     return std::unexpected(ArithmeticError::DomainError);
@@ -90,7 +89,7 @@ constexpr std::expected<double, ArithmeticError> sec_approx(double x) {
   return 1.0 / cos_val;
 }
 
-std::expected<double, ArithmeticError> csc_approx(double x) {
+std::expected<double, ArithmeticError> csc_approx(double x) noexcept {
   double sin_val = sin_approx(x);
   if (abs(sin_val) < 1e-10) {
     return std::unexpected(ArithmeticError::DomainError);
@@ -98,7 +97,8 @@ std::expected<double, ArithmeticError> csc_approx(double x) {
   return 1.0 / sin_val;
 }
 
-constexpr std::expected<double, ArithmeticError> asin_approx(double x) {
+constexpr std::expected<double, ArithmeticError> asin_approx(
+    double x) noexcept {
   if (x < -1.0 || x > 1.0) {
     return std::unexpected(ArithmeticError::DomainError);
   }
@@ -114,13 +114,14 @@ constexpr std::expected<double, ArithmeticError> asin_approx(double x) {
   return result;
 }
 
-constexpr std::expected<double, ArithmeticError> acos_approx(double x) {
+constexpr std::expected<double, ArithmeticError> acos_approx(
+    double x) noexcept {
   auto asin_val = asin_approx(x);
   if (!asin_val) return asin_val;
   return PI / 2.0 - *asin_val;
 }
 
-constexpr double atan_approx(double x) {
+[[nodiscard]] constexpr double atan_approx(double x) {
   if (abs(x) > 1.0) {
     double inner = atan_approx(1.0 / x);
     return x > 0 ? PI / 2.0 - inner : -PI / 2.0 - inner;
@@ -137,28 +138,32 @@ constexpr double atan_approx(double x) {
   return result;
 }
 
-constexpr std::expected<double, ArithmeticError> acot_approx(double x) {
+constexpr std::expected<double, ArithmeticError> acot_approx(
+    double x) noexcept {
   if (x == 0) {
     return std::unexpected(ArithmeticError::DomainError);
   }
   return PI / 2.0 - atan_approx(x);
 }
 
-constexpr std::expected<double, ArithmeticError> asec_approx(double x) {
+constexpr std::expected<double, ArithmeticError> asec_approx(
+    double x) noexcept {
   if (x > -1.0 && x < 1.0 && x != 0) {
     return std::unexpected(ArithmeticError::DomainError);
   }
   return acos_approx(1.0 / x);
 }
 
-constexpr std::expected<double, ArithmeticError> acsc_approx(double x) {
+constexpr std::expected<double, ArithmeticError> acsc_approx(
+    double x) noexcept {
   if (x > -1.0 && x < 1.0 && x != 0) {
     return std::unexpected(ArithmeticError::DomainError);
   }
   return asin_approx(1.0 / x);
 }
 
-constexpr std::expected<double, ArithmeticError> log10_approx(double x) {
+constexpr std::expected<double, ArithmeticError> log10_approx(
+    double x) noexcept {
   if (x <= 0) {
     return std::unexpected(ArithmeticError::DomainError);
   }
@@ -178,7 +183,7 @@ constexpr std::expected<double, ArithmeticError> log10_approx(double x) {
   return result / ln10;
 }
 
-constexpr std::expected<double, ArithmeticError> ln_approx(double x) {
+constexpr std::expected<double, ArithmeticError> ln_approx(double x) noexcept {
   if (x <= 0) {
     return std::unexpected(ArithmeticError::DomainError);
   }
@@ -195,7 +200,8 @@ constexpr std::expected<double, ArithmeticError> ln_approx(double x) {
   return 2.0 * result;
 }
 
-constexpr std::expected<double, ArithmeticError> sqrt_approx(double x) {
+constexpr std::expected<double, ArithmeticError> sqrt_approx(
+    double x) noexcept {
   if (x < 0) {
     return std::unexpected(ArithmeticError::DomainError);
   }
@@ -207,7 +213,8 @@ constexpr std::expected<double, ArithmeticError> sqrt_approx(double x) {
   return guess;
 }
 
-constexpr std::expected<double, ArithmeticError> factorial_approx(double x) {
+constexpr std::expected<double, ArithmeticError> factorial_approx(
+    double x) noexcept {
   if (x < 0 || x != static_cast<int>(x)) {
     return std::unexpected(ArithmeticError::DomainError);
   }
@@ -218,7 +225,7 @@ constexpr std::expected<double, ArithmeticError> factorial_approx(double x) {
 }
 
 constexpr std::expected<double, ArithmeticError> pow_approx(double a,
-                                                            double b) {
+                                                            double b) noexcept {
   if (a == 0 && b <= 0) {
     return std::unexpected(ArithmeticError::DomainError);
   }
@@ -249,7 +256,8 @@ constexpr std::expected<double, ArithmeticError> pow_approx(double a,
   return result;
 }
 
-constexpr std::expected<double, ArithmeticError> safe_add(double a, double b) {
+constexpr std::expected<double, ArithmeticError> safe_add(double a,
+                                                          double b) noexcept {
   if (a > 0 && b > std::numeric_limits<double>::max() - a) {
     return std::unexpected(ArithmeticError::Overflow);
   }
@@ -259,7 +267,8 @@ constexpr std::expected<double, ArithmeticError> safe_add(double a, double b) {
   return a + b;
 }
 
-constexpr std::expected<double, ArithmeticError> safe_sub(double a, double b) {
+constexpr std::expected<double, ArithmeticError> safe_sub(double a,
+                                                          double b) noexcept {
   if (b > 0 && a < std::numeric_limits<double>::lowest() + b) {
     return std::unexpected(ArithmeticError::Underflow);
   }
@@ -269,14 +278,16 @@ constexpr std::expected<double, ArithmeticError> safe_sub(double a, double b) {
   return a - b;
 }
 
-constexpr std::expected<double, ArithmeticError> safe_mul(double a, double b) {
+constexpr std::expected<double, ArithmeticError> safe_mul(double a,
+                                                          double b) noexcept {
   if (abs(a) > 1 && abs(b) > std::numeric_limits<double>::max() / abs(a)) {
     return std::unexpected(ArithmeticError::Overflow);
   }
   return a * b;
 }
 
-constexpr std::expected<double, ArithmeticError> safe_div(double a, double b) {
+constexpr std::expected<double, ArithmeticError> safe_div(double a,
+                                                          double b) noexcept {
   if (abs(b) < 1e-10) {
     return std::unexpected(ArithmeticError::DivisionByZero);
   }
@@ -312,7 +323,8 @@ enum class OpType {
 template <Arithmetic T>
 struct Operation {
   OpType type;
-  constexpr std::expected<T, ArithmeticError> apply(T a, T b = 0) const {
+  constexpr std::expected<T, ArithmeticError> apply(T a,
+                                                    T b = 0) const noexcept {
     switch (type) {
       case OpType::Add:
         return safe_add(a, b);
@@ -401,7 +413,8 @@ constexpr std::array<std::pair<std::string_view, int>, 22> precedence = {
      {"!", 5},    {"~", 5}}};
 
 template <Arithmetic T>
-constexpr std::optional<Operation<T>> find_operation(std::string_view op) {
+[[nodiscard]] constexpr std::optional<Operation<T>> find_operation(
+    std::string_view op) {
   for (const auto& [name, operation] : operation_map<T>) {
     if (name == op) return operation;
   }
@@ -409,7 +422,7 @@ constexpr std::optional<Operation<T>> find_operation(std::string_view op) {
 }
 
 template <Arithmetic T>
-constexpr bool is_left_associative(OpType type) {
+[[nodiscard]] constexpr bool is_left_associative(OpType type) {
   return type != OpType::Pow;
 }
 
@@ -610,7 +623,7 @@ class Evaluator {
 
  private:
   static std::expected<T, ArithmeticError> apply_operator(
-      std::stack<T>& values, std::stack<Operation<T>>& ops) {
+      std::stack<T>& values, std::stack<Operation<T>>& ops) noexcept {
     if (ops.empty()) {
       return std::unexpected(ArithmeticError::InvalidExpression);
     }
