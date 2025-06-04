@@ -1,1 +1,3 @@
-# Interview
+# Calculator
+
+Just simple stupid calculator
